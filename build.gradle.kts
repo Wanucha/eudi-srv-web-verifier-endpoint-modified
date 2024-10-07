@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.owasp.dependencycheck.gradle.extension.DependencyCheckExtension
 import org.springframework.boot.gradle.tasks.bundling.BootBuildImage
 import kotlin.jvm.optionals.getOrNull
@@ -60,6 +61,11 @@ kotlin {
         freeCompilerArgs.add("-Xcontext-receivers")
         freeCompilerArgs.add("-Xjsr305=strict")
     }
+}
+
+val compileKotlin: KotlinCompile by tasks
+compileKotlin.compilerOptions {
+    freeCompilerArgs.add("-Xdebug")
 }
 
 tasks.test {
