@@ -59,6 +59,7 @@ import org.springframework.security.config.web.server.ServerHttpSecurity
 import org.springframework.security.config.web.server.invoke
 import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.reactive.CorsConfigurationSource
+import org.springframework.web.reactive.function.client.WebClient
 import java.security.KeyStore
 import java.security.cert.X509Certificate
 import java.time.Clock
@@ -69,6 +70,11 @@ private val log = LoggerFactory.getLogger(VerifierApplication::class.java)
 
 @OptIn(ExperimentalSerializationApi::class)
 internal fun beans(clock: Clock) = beans {
+    //
+    // General
+    //
+    bean { WebClient.builder().build() }
+
     //
     // JOSE
     //
@@ -133,7 +139,7 @@ internal fun beans(clock: Clock) = beans {
     bean { GenerateResponseCode.Random }
     bean { PostWalletResponseLive(ref(), ref(), ref(), clock, ref(), ref(), ref(), ref()) }
     bean { GenerateEphemeralEncryptionKeyPairNimbus }
-    bean { GetWalletResponseLive(clock, ref(), ref()) }
+    bean { GetWalletResponseLive(clock, ref(), ref(), ref()) }
     bean { GetJarmJwksLive(ref(), clock, ref()) }
     bean { GetPresentationEventsLive(ref(), ref()) }
 

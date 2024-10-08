@@ -28,6 +28,8 @@ import eu.europa.ec.eudi.verifier.endpoint.port.input.QueryResponse.NotFound
 import eu.europa.ec.eudi.verifier.endpoint.port.out.persistence.LoadPresentationById
 import eu.europa.ec.eudi.verifier.endpoint.port.out.persistence.PresentationEvent
 import eu.europa.ec.eudi.verifier.endpoint.port.out.persistence.PublishPresentationEvent
+import eu.europa.ec.eudi.verifier.endpoint.service.AccessTokenService
+import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonArray
@@ -35,6 +37,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import reactor.core.scheduler.Schedulers
 import java.time.Clock
 
 /**
@@ -48,9 +51,10 @@ data class WalletResponseTO(
     @SerialName("presentation_submission") val presentationSubmission: PresentationSubmission? = null,
     @SerialName("error") val error: String? = null,
     @SerialName("error_description") val errorDescription: String? = null,
+    @SerialName("access_token") var accessToken: String? = null,
 )
 
-internal fun WalletResponse.toTO(): WalletResponseTO {
+internal fun WalletResponse.toTO(accessToken: String? = null): WalletResponseTO {
     fun VerifiablePresentation.toJsonElement(): JsonElement =
         when (this) {
             is VerifiablePresentation.Generic -> JsonPrimitive(value)
@@ -91,6 +95,7 @@ class GetWalletResponseLive(
     private val clock: Clock,
     private val loadPresentationById: LoadPresentationById,
     private val publishPresentationEvent: PublishPresentationEvent,
+    private val accessTokenService: AccessTokenService,
 ) : GetWalletResponse {
     private val logger: Logger = LoggerFactory.getLogger(GetWalletResponseLive::class.java)
 
@@ -113,6 +118,13 @@ class GetWalletResponseLive(
     private suspend fun found(presentation: Presentation.Submitted): Found<WalletResponseTO> {
         val walletResponse = presentation.walletResponse.toTO()
         logVerifierGotWalletResponse(presentation, walletResponse)
+
+        // get access token and add it to the response
+        val accessToken = accessTokenService.getAccessToken()
+            .subscribeOn(Schedulers.boundedElastic())
+            .awaitSingle()
+        walletResponse.accessToken = accessToken.accessToken
+
         return Found(walletResponse)
     }
 
